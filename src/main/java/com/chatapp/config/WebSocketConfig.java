@@ -13,15 +13,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		// TODO Auto-generated method stub
-		WebSocketMessageBrokerConfigurer.super.registerStompEndpoints(registry);
+		
+		registry.addEndpoint("/chat")
+		.setAllowedOrigins("http://localhost:5173")
+		.withSockJS();
 	}
 	
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry registry) {
 	   
 		registry.enableSimpleBroker("/topic");
-		registry.setApplicationDestinationPrefixes("/app");
+		// /topic/messages
 		
+		registry.setApplicationDestinationPrefixes("/app");
+		// /app/chat
 	}
 }
