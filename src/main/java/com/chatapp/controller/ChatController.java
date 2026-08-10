@@ -1,52 +1,39 @@
 package com.chatapp.controller;
 
-import java.time.LocalDateTime;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
 
-import com.chatapp.entity.Message;
-import com.chatapp.entity.Room;
+import com.chatapp.payload.MessageDto;
 import com.chatapp.payload.MessageRequest;
-import com.chatapp.repository.RoomRepository;
+import com.chatapp.service.ChatService;
 
-@RestController
-@CrossOrigin("*")
+@Controller
 public class ChatController {
 
-	@Autowired
-	private RoomRepository roomRepository;
-	
-	
-	@MessageMapping("/sendMessage/{roomId}") // send message app/sendMessage/roomid
-	@SendTo("/topic/room/{roomId}") // subscribe to this 
-	public Message sendMessage(
-	        @DestinationVariable String roomId,
-	        MessageRequest request
-	) {
+    private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
 
-	    Room room = roomRepository.findByRoomId(roomId);
+    private final ChatService chatService;
 
-	    if (room == null) {
-	        throw new RuntimeException("Room not found");
-	    }
+    public ChatController(ChatService chatService) {
+        this.chatService = chatService;
+    }
 
-	    Message message = new Message();
-
-	    message.setContent(request.getContent());
-	    message.setSender(request.getSender());
-	    message.setTimeStamp(LocalDateTime.now());
-
-	    message.setRoom(room);
-
-	    room.getMessages().add(message);
-
-	    roomRepository.save(room);
-
-	    return message;
-	}
+    /**
+     * Handles real-time messages over STOMP WebSocket.
+     * Destination: /app/sendMessage/{roomId}
+     * Broadcast to: /topic/room/{roomId}
+     */
+    @MessageMapping("/sendMessage/{roomId}")
+    @SendTo("/topic/room/{roomId}")
+    public MessageDto sendMessage(
+            @DestinationVariable String roomId,
+            @Payload MessageRequest request) {
+        logger.info("Received WebSocket message in room: {} from sender: {}", roomId, request.getSender());
+        return chatService.sendMessage(roomId, request);
+    }
 }
